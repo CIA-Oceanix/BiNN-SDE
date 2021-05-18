@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Feb  4 17:27:27 2021
+
+@author: ndridi
+"""
+
+from IPython import get_ipython
+get_ipython().magic('reset -sf')
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+
+# ss
+class D_parameters:
+    theta = 0.0
+    mu = 0.5
+#        noise
+    gama=1
+
+    N=3
+    dt_integration = 0.001 # integration time
+    
+
+Nb_simu=1000
+tspan = np.arange(0,D_parameters.N+0.0000001,D_parameters.dt_integration)
+
+T=np.int(D_parameters.N/D_parameters.dt_integration)+1
+
+State_init_all=np.load('State_init_all.npy')
+State_train_all=np.load('State_train_all.npy')
+State_train_class_all=np.load('State_train_classgama1mu05N3dt001.npy')
+State_train_GM_all=np.load('State_train_GM_allgama1mu05N1dt001_simu10000.npy')
+
+State_init_all=State_init_all[0:Nb_simu,:]
+State_train_all=State_train_all[0:Nb_simu,:]
+State_train_class_all=State_train_class_all[0:Nb_simu,:]
+State_train_GM_all=State_train_GM_all[0:Nb_simu,:]
+
+x0 =0.01
+
+the_mean=np.zeros(T)
+for k in range(T):
+     t=tspan[k]
+     the_mean[k]=x0*np.exp(D_parameters.mu*t)
+   # ------------------------------------------------------------
+the_var=np.zeros(T)
+for k in range(T):
+     t=tspan[k]
+     the_var[k]=(x0**2)*np.exp(2*D_parameters.mu*t)*(np.exp(D_parameters.gama**2*t)-1) 
+     
+# =============================================================================
+# the mean and cov appris
+
+gama_sde=0.99485177
+mu_sde=0.38247451
+
+
+the_mean_sde=np.zeros(T)
+for k in range(T):
+     t=tspan[k]
+     the_mean_sde[k]=x0*np.exp(mu_sde*t)
+   # ------------------------------------------------------------
+the_var_sde=np.zeros(T)
+for k in range(T):
+     t=tspan[k]
+     the_var_sde[k]=(x0**2)*np.exp(2*mu_sde*t)*(np.exp(gama_sde**2*t)-1) 
+
+# =============================================================================
+
+mu_class=0.00045604
+gama_class=0
+# --------------------------
+the_mean_class=np.zeros(T)
+for k in range(T):
+     t=tspan[k]
+     the_mean_class[k]=x0*np.exp(mu_class*t)
+   # ------------------------------------------------------------
+the_var_class=np.zeros(T)
+for k in range(T):
+     t=tspan[k]
+     the_var_class[k]=(x0**2)*np.exp(2*mu_class*t)*(np.exp(gama_class**2*t)-1) 
+
+# =============================================================================
+
+#       # ------------------------------------------------
+emp_mean=np.zeros(T)
+emp_var=np.zeros(T)
+for k in range(T):
+ 
+      emp_mean[k]=np.mean(State_train_all[:,k])
+      emp_var[k]=np.var(State_train_all[:,k])
+  # ---------------------------    #         # 
+# Empirical mean and variance
+emp_mean_class=State_train_class_all
+emp_var_class=np.zeros(T)
+# ---------------------------------------------------
+emp_mean_vrai=np.zeros(T)
+emp_var_vrai=np.zeros(T)
+for k in range(T):
+      emp_mean_vrai[k]=np.mean(State_init_all[:,k])
+      emp_var_vrai[k]=np.var(State_init_all[:,k])
+     
+     
+# #            # ------------------------------------------------
+
+emp_mean_GM=np.zeros(T)
+emp_var_GM=np.zeros(T)
+
+for k in range(T-1):
+      emp_mean_GM[k]=np.mean(State_train_GM_all[:,k])
+      emp_var_GM[k]=np.var(State_train_GM_all[:,k])    
+
+
+# =============================================================================
+
+
+
+
+plt.figure(figsize=(12,6))  
+plt.subplot(1,2,1)
+plt.plot(the_mean[0:T-1],'r'),plt.plot(the_mean_sde[0:T-1],'g'),plt.plot(the_mean_class[0:T-1],'m'),plt.plot(emp_mean_vrai[0:T-1],'--r'),plt.plot(emp_mean[0:T-1],'--g'),plt.plot(emp_mean_class[0:T-1],'--m'),plt.plot(emp_mean_GM[0:T-1],'-.')
+plt.legend(['Theoretical mean','Theoretical mean Bi-NN-SDE','Theoretical mean Bi-NN','Empirical mean','Empirical mean Bi-NN SDE','Empirical mean Bi-NN','Empirical mean gradient matching'])
+plt.xlabel('Time')
+plt.ylabel('Mean')
+
+plt.grid()
+plt.subplot(1,2,2)
+
+plt.plot(the_var[0:T-1],'r'),plt.plot(the_var_sde[0:T-1],'g'),plt.plot(the_var_class[0:T-1],'m'),plt.plot(emp_var_vrai[0:T-1],'--r'),plt.plot(emp_var[0:T-1],'--g'),plt.plot(emp_var_class[0:T-1],'--m'),plt.plot(emp_var_GM[0:T-1],'-.')
+plt.legend(['Theoretical var','Theoretical var Bi-NN-SDE','Theoretical var Bi-NN','Empirical var','Empirical var Bi-NN SDE','Empirical mean Bi-NN','Empirical mean gradient matching'])
+
+plt.grid()
+plt.xlabel('Time')
+plt.ylabel('Variance')
+# plt.title('mu=0.5, gama=1, T=3000,dt=0.01,nb_epoch=2500, batch=32')
+# # =============================================================================
+# 
